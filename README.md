@@ -1,61 +1,104 @@
-# Assignment 6 — Visitor Pattern (Java 17)
+# Assignment 6 — Visitor Pattern
 
-Individual assignment for Software Design Patterns (ShP-2216). Selected topic: **Option A — File System Visitor**.
+**Course:** Software Design Patterns (ShP-2216)  
+**Language:** Java 17  
+**Topic:** File System Visitor (Option A)
 
-## Purpose
+## Overview
 
-Model a hierarchy of `FileElement` and `DirectoryElement` and run independent operations over the same tree using the Visitor behavioral design pattern. The project demonstrates **double dispatch** through `element.accept(visitor)` and `visitor.visitFile(this)` / `visitor.visitDirectory(this)`.
+This project demonstrates the **Visitor** behavioral design pattern using an in-memory file-system tree. The tree contains files and directories. Different operations are performed on the same structure without adding operation-specific logic to the element classes.
 
-## Visitors
+The application does **not** access or modify the computer's real file system.
 
-- `SizeCalculatorVisitor`: adds the sizes of all files, including nested files.
-- `SearchVisitor`: finds files by a case-insensitive name fragment.
-- `FileCountVisitor`: counts files and directories; demonstrates how to add a new operation without changing the element classes.
+## Implemented Visitors
 
-Directory recursion happens in `DirectoryElement.accept()`; each visitor receives the same nodes. There are **no `instanceof` or element-type checking chains**. The example works on a simulated file system (does not read or modify actual disks).
+| Visitor | Responsibility |
+| --- | --- |
+| `SizeCalculatorVisitor` | Calculates the total size of files in the tree, including nested files. |
+| `SearchVisitor` | Finds files whose names contain a given text, ignoring case. |
+| `FileCountVisitor` | Counts files and directories in the tree. |
+
+The third visitor demonstrates extensibility: a new operation can be implemented without changing `FileElement` or `DirectoryElement`.
+
+## Project Structure
+
+```text
+SDP_Assignment6_Visitor_Pattern/
+├── src/
+│   ├── main/
+│   │   ├── FileSystemElement.java
+│   │   ├── FileElement.java
+│   │   ├── DirectoryElement.java
+│   │   ├── FileSystemVisitor.java
+│   │   ├── SizeCalculatorVisitor.java
+│   │   ├── SearchVisitor.java
+│   │   ├── FileCountVisitor.java
+│   │   └── Main.java
+│   └── test/
+│       └── VisitorPatternTest.java
+├── .gitignore
+└── README.md
+```
+
+The files declare the Java package `kz.aitu.visitor`. Their direct placement under `src/main` and `src/test` is supported by the manual PowerShell compilation command below.
+
+`FileSystemElement` defines `accept(visitor)`. `FileElement` and `DirectoryElement` implement this interface, while `FileSystemVisitor` defines the operations supported by visitors.
+
+## How the Visitor Pattern Works
+
+1. The client creates a visitor and passes it to an element using `accept()`.
+2. The concrete element calls the matching method on the visitor, such as `visitFile(this)` or `visitDirectory(this)`.
+3. `DirectoryElement` also passes the visitor to its children, allowing nested elements to be processed.
+
+For example:
+
+```java
+SizeCalculatorVisitor visitor = new SizeCalculatorVisitor();
+project.accept(visitor);
+long totalSize = visitor.getTotalSizeInBytes();
+```
+
+The call from `accept()` to the correct `visit...()` method demonstrates **double dispatch**. The implementation does not use `instanceof` checks to distinguish element types.
 
 ## Requirements
 
-Java JDK **17+**, including Java 21 compiled with `--release 17`. No Maven, Gradle, or third-party libraries needed.
+- JDK 17 or newer (the project can be compiled for Java 17 with `--release 17`).
+- IntelliJ IDEA or a terminal with `javac` and `java` available.
+- No external libraries, Maven, or Gradle are required.
 
 ## Run in IntelliJ IDEA
 
-1. Open this folder as a project.
-2. Set Project SDK to JDK 17 (or newer) and language level 17.
-3. Open `src/main/java/kz/aitu/visitor/Main.java`.
-4. Right-click `Main.main()` and select **Run 'Main.main()'**.
-5. To run tests, open `src/test/java/kz/aitu/visitor/VisitorPatternTest.java` and run its `main()`.
-
-If IntelliJ does not automatically recognize the folders, mark `src/main/java` as **Sources Root** and `src/test/java` as **Test Sources Root**.
+1. Open the project folder.
+2. Select a configured Project SDK (JDK 17 or newer).
+3. Mark `src/main` as **Sources Root** and `src/test` as **Test Sources Root**, if IntelliJ has not done so automatically.
+4. Open `src/main/Main.java` and run `Main.main()`.
+5. To run the tests, open `src/test/VisitorPatternTest.java` and run its `main()`.
 
 ## Run from Windows PowerShell
 
-```powershell
-.\run.ps1
-.\test.ps1
-```
-
-If your system blocks scripts, run the equivalent commands manually:
+Run the following commands from the project root:
 
 ```powershell
 New-Item -ItemType Directory -Force out | Out-Null
-$files = @(Get-ChildItem src/main/java -Recurse -Filter *.java | ForEach-Object FullName)
+$files = @(Get-ChildItem -Path src/main,src/test -Recurse -Filter *.java | ForEach-Object FullName)
 javac --release 17 -d out $files
-java -cp out kz.aitu.visitor.Main
+```
 
-$allFiles = @(Get-ChildItem src/main/java,src/test/java -Recurse -Filter *.java | ForEach-Object FullName)
-javac --release 17 -d out $allFiles
+Run the application:
+
+```powershell
+java -cp out kz.aitu.visitor.Main
+```
+
+Run the tests:
+
+```powershell
 java -cp out kz.aitu.visitor.VisitorPatternTest
 ```
 
-## Run on Linux/macOS
+The `out/` directory contains generated class files and should not be committed to Git.
 
-```bash
-./run.sh
-./test.sh
-```
-
-## Expected console output
+## Example Output
 
 ```text
 === File System Visitor Pattern ===
@@ -72,47 +115,17 @@ Matching files:
 Count visitor: 6 files, 4 directories
 ```
 
-Tests: `PASS: 9 tests`.
-
-## Key classes
+**Test result:**
 
 ```text
-src/main/java/kz/aitu/visitor/
-  FileSystemElement.java     // Element interface
-  FileElement.java           // Concrete leaf
-  DirectoryElement.java      // Composite; recurses through children
-  FileSystemVisitor.java     // Visitor interface
-  SizeCalculatorVisitor.java // Visitor #1
-  SearchVisitor.java         // Visitor #2
-  FileCountVisitor.java      // Visitor #3 (extensibility)
-  Main.java                  // Sample tree and live demo
-src/test/java/kz/aitu/visitor/
-  VisitorPatternTest.java    // 9 self-contained regression tests
-docs/Visitor_UML.puml        // Editable PlantUML class diagram
-docs/Visitor_UML.png         // UML image
-docs/sample_output.txt       // Verified output from the application
+PASS: 9 tests
 ```
 
-## How double dispatch works
+## Design Notes
 
-```java
-FileSystemVisitor visitor = new SizeCalculatorVisitor();
-FileSystemElement item = new FileElement("notes.txt", 100);
-item.accept(visitor);                // Java selects the concrete element's accept()
-// FileElement.accept calls visitor.visitFile(this); // then chooses visitFile(FileElement)
-```
+- **Single Responsibility:** Each visitor performs one operation.
+- **Open/Closed Principle:** New visitors can be introduced without modifying the existing element classes.
+- **Encapsulation:** Visitors use the elements' public methods to access the information required for their operation.
+- **Trade-off:** Adding a new element type would require updating the visitor interface and all concrete visitors.
 
-Adding a new visitor only requires a new class implementing `FileSystemVisitor`. Adding a **new element type**, however, requires updating the visitor contract and its implementations: this is the Visitor pattern's main trade-off.
-
-## GitHub submission
-
-This project includes local incremental commits; verify them with `git log --oneline`. Configure your own GitHub remote and identity before pushing:
-
-```bash
-git config user.name "YOUR_NAME"
-git config user.email "YOUR_EMAIL"
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
-git push -u origin main
-```
-
-The included report contains a **GitHub URL placeholder** that must be replaced with your actual repository URL before submission. Read and understand the solution, adapt it to your own work and course's academic-integrity rules, and prepare to demonstrate the `accept()` / `visit()` sequence in the defense.
+The example is intentionally small so that the roles of elements, visitors, and the double-dispatch mechanism are easy to inspect and demonstrate.
